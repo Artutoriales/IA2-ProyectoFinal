@@ -1,0 +1,742 @@
+# Pedestrian Counter YOLO - Cursor Project Rules
+
+## 1. Project goal
+
+Build an academic Computer Vision / Artificial Intelligence project that detects and counts ONLY people in images or camera/video input.
+
+The main use case is:
+
+1. User provides an image of a pedestrian crossing/street scene OR uses their webcam.
+2. The application runs YOLO object detection.
+3. Only detections belonging to the `person` class are kept.
+4. The application draws bounding boxes around detected people.
+5. The application displays the total number of detected people.
+6. The application may display the confidence score for each detection.
+7. The system must ignore cars, motorcycles, bicycles, dogs, traffic signs, etc.
+
+The project is primarily intended for an academic AI class. Code should therefore remain understandable and easy to explain during a presentation.
+
+---
+
+## 2. Core technical stack
+
+### AI / Computer Vision
+- Python 3.11+ preferred.
+- Ultralytics YOLO.
+- OpenCV.
+- NumPy.
+
+### Backend
+- FastAPI.
+- Uvicorn.
+
+### Frontend
+- React.
+- TypeScript.
+- Vite.
+- Bun must be used as the JavaScript/TypeScript package manager and runtime whenever applicable.
+- Do NOT use npm commands.
+- Do NOT generate package-lock.json.
+- Prefer Bun commands such as:
+  - `bun install`
+  - `bun add`
+  - `bun run dev`
+  - `bun run build`
+
+### Communication
+The frontend should communicate with the FastAPI backend through HTTP.
+
+---
+
+## 3. Important development principles
+
+- Keep the implementation simple before adding advanced features.
+- Do not over-engineer the project.
+- Prefer readable code over clever abstractions.
+- Use clear names for variables, functions, classes and files.
+- Keep AI/model logic separated from HTTP/API logic.
+- Keep frontend UI separated from API communication.
+- Avoid unnecessary dependencies.
+- Do not add databases unless explicitly requested.
+- Do not add authentication unless explicitly requested.
+- Do not add cloud infrastructure unless explicitly requested.
+- Do not add Docker unless explicitly requested.
+- Do not train a custom model unless explicitly requested.
+- Start with a pretrained YOLO model.
+
+---
+
+## 4. Initial project scope
+
+The MVP must support two input modes:
+
+### Mode A - Image upload
+The user selects an image from their computer.
+
+Supported common image formats:
+- JPG/JPEG
+- PNG
+- WEBP
+
+The frontend sends the image to the backend.
+
+The backend:
+1. Reads the image.
+2. Runs YOLO inference.
+3. Filters detections to `person`.
+4. Applies the configured confidence threshold.
+5. Draws bounding boxes.
+6. Returns:
+   - processed image
+   - total number of detected people
+   - detection information
+
+### Mode B - Webcam / camera
+
+The project should eventually support webcam detection.
+
+Preferred approach for the first implementation:
+- Browser captures webcam frames.
+- Frames are periodically sent to the backend.
+- Backend performs YOLO inference.
+- Backend returns detections.
+- Frontend displays the annotated result.
+
+Do NOT attempt to build a complex WebRTC infrastructure for the MVP.
+
+If webcam support makes the first version unnecessarily complex, finish image upload first and add webcam support as a second milestone.
+
+---
+
+## 5. YOLO requirements
+
+Use a current lightweight YOLO model suitable for local inference.
+
+Default preference:
+- Start with a small pretrained model such as a YOLO nano/small variant.
+- Prioritize ease of execution and reasonable inference speed.
+
+Do not download or use unnecessarily large models.
+
+The model must be capable of detecting the COCO `person` class.
+
+The application must NOT count all detected classes.
+
+Conceptually:
+
+```python
+PERSON_CLASS_ID = 0
+
+for detection in detections:
+    if detection.class_id == PERSON_CLASS_ID:
+        count += 1
+```
+
+Do not hard-code assumptions about other object classes.
+
+---
+
+## 6. Confidence threshold
+
+Use a configurable confidence threshold.
+
+Default:
+- `0.50`
+
+The threshold must NOT be scattered throughout the code.
+
+Put it in configuration, for example:
+
+```text
+CONFIDENCE_THRESHOLD=0.50
+```
+
+The application should allow changing this value without modifying the detection algorithm.
+
+Explain in comments/documentation that increasing the threshold can reduce false positives but may also cause some people to be missed.
+
+---
+
+## 7. Detection result format
+
+The backend should expose structured detection information.
+
+Preferred response concept:
+
+```json
+{
+  "total_personas": 3,
+  "detecciones": [
+    {
+      "clase": "person",
+      "confianza": 0.94,
+      "caja": {
+        "x1": 120,
+        "y1": 80,
+        "x2": 180,
+        "y2": 260
+      }
+    }
+  ],
+  "imagen_resultado": "..."
+}
+```
+
+Use English internally if that produces cleaner code, but the user-facing UI should be in Spanish.
+
+Example internal naming:
+
+```text
+total_people
+detections
+confidence
+bounding_box
+```
+
+Example user-facing labels:
+
+```text
+Personas detectadas
+Confianza
+Resultado
+Cargar imagen
+Usar cámara
+```
+
+---
+
+## 8. Image processing
+
+Use OpenCV for image handling and drawing.
+
+Bounding boxes should include:
+- rectangle around the detected person
+- label `Person`
+- confidence percentage
+
+Example:
+
+```text
+Person 94%
+```
+
+The final image should clearly show all detected people.
+
+Do not alter the original image permanently. Create a processed copy for the result.
+
+---
+
+## 9. Backend architecture
+
+Use a simple structure similar to:
+
+```text
+backend/
+├── app/
+│   ├── main.py
+│   ├── config.py
+│   ├── api/
+│   │   └── routes.py
+│   ├── services/
+│   │   └── detector.py
+│   └── schemas/
+│       └── detection.py
+├── models/
+├── tests/
+├── requirements.txt
+└── README.md
+```
+
+The exact structure may be simplified if the project is still small.
+
+Responsibilities:
+
+### `main.py`
+- Create FastAPI application.
+- Configure CORS.
+- Register routes.
+
+### `detector.py`
+- Load YOLO model.
+- Run inference.
+- Filter `person`.
+- Calculate count.
+- Generate annotated image.
+
+### `routes.py`
+- Receive HTTP requests.
+- Validate uploaded files.
+- Call detector service.
+- Return results.
+
+### `config.py`
+- Model path/name.
+- Confidence threshold.
+- Allowed image formats.
+- Other environment configuration.
+
+Do not put the entire project into one huge Python file.
+
+---
+
+## 10. API endpoints
+
+Start with:
+
+### `GET /health`
+
+Returns:
+
+```json
+{
+  "status": "ok"
+}
+```
+
+### `POST /detect`
+
+Accepts an image using multipart/form-data.
+
+Returns:
+- total people
+- detections
+- processed image
+
+Potential future endpoint:
+
+### `POST /detect/frame`
+
+For webcam frames.
+
+Do not implement this endpoint until the image-based MVP is working.
+
+---
+
+## 11. Frontend architecture
+
+Use React + TypeScript.
+
+Suggested structure:
+
+```text
+frontend/
+├── src/
+│   ├── components/
+│   │   ├── ImageUploader.tsx
+│   │   ├── DetectionResult.tsx
+│   │   └── CameraView.tsx
+│   ├── services/
+│   │   └── api.ts
+│   ├── types/
+│   │   └── detection.ts
+│   ├── App.tsx
+│   └── main.tsx
+├── package.json
+└── ...
+```
+
+Start with:
+- Image upload.
+- Preview.
+- Analyze button.
+- Loading state.
+- Error state.
+- Result image.
+- People count.
+- Detection details.
+
+Then add webcam support.
+
+---
+
+## 12. Frontend design
+
+The interface should be simple and appropriate for an academic project.
+
+Main screen:
+
+```text
++------------------------------------------------+
+|        PEDESTRIAN COUNTER YOLO                 |
+|                                                |
+|  Detecta y cuenta personas mediante IA        |
+|                                                |
+|  [ Seleccionar imagen ]   [ Usar cámara ]     |
+|                                                |
+|             Imagen / cámara                   |
+|                                                |
+|        Personas detectadas: 8                 |
+|                                                |
++------------------------------------------------+
+```
+
+Do not spend excessive time on visual design before the AI pipeline works.
+
+---
+
+## 13. Camera mode
+
+For webcam mode:
+
+- Ask the browser for camera permission.
+- Display the camera preview.
+- Capture frames at a controlled interval.
+- Send frames to the backend.
+- Display the most recent detection result.
+- Show the current people count.
+
+Avoid sending frames as fast as possible.
+
+Use a configurable interval such as:
+
+```text
+500ms - 1000ms
+```
+
+to prevent overwhelming the backend.
+
+If performance is poor, increase the interval.
+
+---
+
+## 14. Error handling
+
+The application must handle:
+
+- Invalid image type.
+- Empty upload.
+- Corrupted image.
+- Backend unavailable.
+- Model loading failure.
+- Camera permission denied.
+- Camera unavailable.
+- No people detected.
+
+Example:
+
+```text
+No se detectaron personas.
+```
+
+is valid and must NOT be treated as an error.
+
+---
+
+## 15. Security / validation
+
+For uploaded files:
+- Validate MIME type.
+- Validate extension.
+- Limit maximum file size.
+- Do not execute or save uploaded files as executable code.
+- Use temporary files or in-memory processing where practical.
+
+Do not introduce unnecessary authentication/security frameworks for this academic MVP.
+
+---
+
+## 16. Performance
+
+Prefer a lightweight model and CPU-compatible implementation.
+
+The project must work on a normal development computer without requiring a dedicated GPU.
+
+If a GPU is available, the implementation may use it, but CPU must remain a valid fallback.
+
+Do not optimize prematurely.
+
+Measure performance only after the basic pipeline works.
+
+Useful metrics:
+- inference time
+- total processing time
+- number of detections
+
+---
+
+## 17. Testing
+
+Create tests for the detection logic where practical.
+
+At minimum verify:
+
+1. Image containing people -> people are detected.
+2. Image without people -> count is 0.
+3. Image containing cars but no people -> count remains 0.
+4. Image containing people and other objects -> only people are counted.
+5. Invalid image -> appropriate error.
+6. Confidence threshold affects detections as expected.
+
+Do not rely only on unit tests. Include manual visual tests using several street/crosswalk images.
+
+---
+
+## 18. AI evaluation
+
+The academic project should eventually document:
+
+- Accuracy-related observations.
+- Precision.
+- Recall.
+- IoU.
+- mAP, when appropriate.
+- False positives.
+- False negatives.
+- Confidence threshold.
+- Difficult scenarios.
+
+Important difficult scenarios to test:
+- People far away.
+- People partially hidden.
+- Groups of people.
+- People crossing each other.
+- Low lighting.
+- Different camera angles.
+- Crowded crossings.
+- People partially outside the image.
+
+Do not invent evaluation metrics or results.
+
+Only report measured results from actual experiments.
+
+---
+
+## 19. Academic documentation
+
+The README should eventually explain:
+
+1. Problem statement.
+2. Motivation.
+3. General objective.
+4. Specific objectives.
+5. Technologies.
+6. YOLO overview.
+7. Detection pipeline.
+8. Why only `person` is counted.
+9. Confidence threshold.
+10. Evaluation methodology.
+11. Results.
+12. Limitations.
+13. Future improvements.
+14. How to run the project.
+
+Use simple explanations because the project must be presented orally.
+
+---
+
+## 20. Future improvements
+
+Possible future features, but do NOT implement unless requested:
+
+- Custom YOLO training.
+- Custom pedestrian dataset.
+- Pedestrian tracking.
+- Video file processing.
+- Real-time optimized camera inference.
+- Entry/exit counting using a virtual line.
+- Region-of-interest detection for crosswalks.
+- Database for historical counts.
+- Statistics dashboard.
+- Export reports.
+- GPU acceleration.
+- Docker deployment.
+
+The current project should remain focused on detecting and counting people.
+
+---
+
+## 21. Development phases
+
+Follow this order:
+
+### Phase 1 - YOLO proof of concept
+- Python environment.
+- Install dependencies.
+- Download/load pretrained model.
+- Test one image.
+- Detect `person`.
+- Print count.
+- Save annotated image.
+
+### Phase 2 - Detection service
+- Refactor detector into a service.
+- Add configuration.
+- Add confidence threshold.
+- Add tests.
+
+### Phase 3 - FastAPI
+- Create `/health`.
+- Create `/detect`.
+- Receive image.
+- Return structured detection result.
+
+### Phase 4 - React frontend
+- Create image uploader.
+- Call API.
+- Show result.
+- Show count.
+- Show errors/loading.
+
+### Phase 5 - Webcam
+- Add browser camera access.
+- Send frames periodically.
+- Show live-ish detection.
+
+### Phase 6 - Evaluation
+- Prepare test images.
+- Record results.
+- Analyze false positives/negatives.
+- Document metrics.
+
+### Phase 7 - Academic presentation
+- Explain CNN/object detection.
+- Explain YOLO.
+- Explain the pipeline.
+- Show live demonstration.
+- Show limitations and results.
+
+---
+
+## 22. Git workflow
+
+Use small, meaningful commits.
+
+Suggested commits:
+
+```text
+chore: initialize project
+feat: add YOLO person detection
+feat: add person counting
+feat: add annotated image output
+feat: add FastAPI detection endpoint
+feat: add image upload interface
+feat: add webcam detection
+test: add detection tests
+docs: update project documentation
+```
+
+Do not create giant commits containing unrelated changes.
+
+---
+
+## 23. Code style
+
+Python:
+- PEP 8.
+- Type hints where useful.
+- Clear function names.
+- Small functions.
+- Avoid unnecessary classes.
+
+TypeScript:
+- Strict typing.
+- Avoid `any` unless genuinely necessary.
+- Reusable components.
+- Separate API calls from UI components.
+
+Comments:
+- Explain WHY when something is not obvious.
+- Do not comment every simple line.
+- AI-specific concepts should have concise explanatory comments where useful for academic presentation.
+
+---
+
+## 24. Dependencies
+
+Keep dependencies minimal.
+
+Python dependencies should initially be limited to what is necessary for:
+- YOLO inference.
+- OpenCV.
+- NumPy.
+- FastAPI.
+- Uvicorn.
+- Testing.
+
+Frontend dependencies should initially be limited to what is necessary for:
+- React.
+- TypeScript.
+- Vite.
+
+Do not install libraries just because they might be useful later.
+
+---
+
+## 25. Package manager rule
+
+For JavaScript/TypeScript:
+
+NEVER use:
+
+```bash
+npm install
+npm run
+npx
+```
+
+Prefer:
+
+```bash
+bun install
+bun add <package>
+bun run <script>
+bunx <package>
+```
+
+For Python, use an isolated virtual environment and `pip` or another Python-specific package manager when appropriate.
+
+---
+
+## 26. Environment variables
+
+Never hard-code secrets.
+
+Use `.env` for configurable values when necessary.
+
+Provide `.env.example`.
+
+Never commit:
+- `.env`
+- API keys
+- passwords
+- private credentials
+- personal images that should not be public
+
+---
+
+## 27. Important instruction for Cursor
+
+Before implementing a feature:
+
+1. Inspect the current project structure.
+2. Check what has already been implemented.
+3. Avoid rewriting working code unnecessarily.
+4. Follow the current phase.
+5. Implement the smallest useful change.
+6. Test the change.
+7. Explain what changed.
+8. Mention how to run/test it.
+
+Do not jump directly to advanced features.
+
+The priority is:
+
+```text
+Correctness
+    ↓
+Understandability
+    ↓
+Academic explainability
+    ↓
+Testing
+    ↓
+Performance
+    ↓
+Visual polish
+```
+
+The final application must reliably answer one simple question:
+
+"¿Cuántas personas hay en esta imagen?"
+
+and must count ONLY people.

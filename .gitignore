@@ -1,0 +1,23 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+venv/
+
+# Environment
+.env
+
+# YOLO weights (downloaded on first run)
+*.pt
+*.onnx
+
+# Local test assets and detector output
+backend/data/samples/
+backend/output/
+
+# Editors / OS
+.idea/
+.vscode/
+.DS_Store
+Thumbs.db
