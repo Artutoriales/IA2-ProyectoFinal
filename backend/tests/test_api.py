@@ -33,10 +33,10 @@ def test_detect_counts_people_in_bus_image(client: TestClient, bus_image: np.nda
 
     payload = response.json()
     assert response.status_code == 200
-    assert payload["total_personas"] > 0
-    assert payload["total_personas"] == len(payload["detecciones"])
-    assert all(item["clase"] == "person" for item in payload["detecciones"])
-    assert payload["imagen_resultado"]
+    assert payload["total_people"] > 0
+    assert payload["total_people"] == len(payload["detections"])
+    assert all(item["class_name"] == "person" for item in payload["detections"])
+    assert payload["image_result"]
 
 
 def test_detect_zero_people_is_not_an_error(client: TestClient, empty_scene: np.ndarray) -> None:
@@ -49,8 +49,8 @@ def test_detect_zero_people_is_not_an_error(client: TestClient, empty_scene: np.
 
     payload = response.json()
     assert response.status_code == 200
-    assert payload["total_personas"] == 0
-    assert payload["detecciones"] == []
+    assert payload["total_people"] == 0
+    assert payload["detections"] == []
 
 
 def test_detect_rejects_empty_file(client: TestClient) -> None:

@@ -38,14 +38,14 @@ async def detect(file: UploadFile = File(...)) -> DetectionResponse:
     except ValueError as error:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(error)) from error
 
-    # Cero personas no es un error: se devuelve total_personas = 0.
+    # Cero personas no es un error: se devuelve total_people = 0.
     return DetectionResponse(
-        total_personas=result.total_people,
-        detecciones=[
+        total_people=result.total_people,
+        detections=[
             DetectionSchema(
-                clase=detection.class_name,
-                confianza=round(detection.confidence, 4),
-                caja=BoundingBoxSchema(
+                class_name=detection.class_name,
+                confidence=round(detection.confidence, 4),
+                bounding_box=BoundingBoxSchema(
                     x1=detection.x1,
                     y1=detection.y1,
                     x2=detection.x2,
@@ -54,7 +54,7 @@ async def detect(file: UploadFile = File(...)) -> DetectionResponse:
             )
             for detection in result.detections
         ],
-        imagen_resultado=encode_image_as_jpeg_base64(result.annotated_image),
+        image_result=encode_image_as_jpeg_base64(result.annotated_image),
     )
 
 
